@@ -97,6 +97,7 @@ class TcpServer : noncopyable
   /// Not thread safe, but in loop
   void removeConnectionInLoop(const TcpConnectionPtr& conn);
 
+  //每个TcpConnection对象有一个名字，这个名字是由其所属的TcpServer在创建TcpConntion对象时生成，名字是ConntionMap的Key
   typedef std::map<string, TcpConnectionPtr> ConnectionMap;
 
   EventLoop* loop_;  // the acceptor loop

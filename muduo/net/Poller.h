@@ -58,7 +58,7 @@ class Poller : noncopyable
   }
 
  protected:
-  typedef std::map<int, Channel*> ChannelMap;
+  typedef std::map<int, Channel*> ChannelMap;//是從fd到Channel*的映射
   ChannelMap channels_;
 
  private:

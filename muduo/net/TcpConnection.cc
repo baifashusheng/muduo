@@ -50,6 +50,7 @@ TcpConnection::TcpConnection(EventLoop* loop,
     peerAddr_(peerAddr),
     highWaterMark_(64*1024*1024)
 {
+    // 下面给channel设置相应的回调函数，poller给channel通知感兴趣的事件发生了，channel会回调相应的操作函数
   channel_->setReadCallback(
       std::bind(&TcpConnection::handleRead, this, _1));
   channel_->setWriteCallback(
@@ -136,6 +137,9 @@ void TcpConnection::sendInLoop(const StringPiece& message)
   sendInLoop(message.data(), message.size());
 }
 
+/**
+ * 发送数据  应用写的快， 而内核发送数据慢， 需要把待发送数据写入缓冲区， 而且设置了水位回调
+ */
 void TcpConnection::sendInLoop(const void* data, size_t len)
 {
   loop_->assertInLoopThread();
@@ -351,6 +355,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
   if (n > 0)
   {
+      //// 已建立连接的用户，有可读事件发生了，调用用户传入的回调操作onMessage
     messageCallback_(shared_from_this(), &inputBuffer_, receiveTime);
   }
   else if (n == 0)
@@ -417,7 +422,7 @@ void TcpConnection::handleClose()
   TcpConnectionPtr guardThis(shared_from_this());
   connectionCallback_(guardThis);
   // must be the last line
-  closeCallback_(guardThis);
+  closeCallback_(guardThis);//这个回调绑定到TcpServer::removeConnection()
 }
 
 void TcpConnection::handleError()

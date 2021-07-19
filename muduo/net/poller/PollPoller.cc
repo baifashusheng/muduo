@@ -26,9 +26,10 @@ PollPoller::PollPoller(EventLoop* loop)
 
 PollPoller::~PollPoller() = default;
 
+//是核心功能，它调用poll(2)获得当前活动的IO事件，然后填充调用方传入activeChanels并返回poll(2)return的时刻
 Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels)
 {
-  // XXX pollfds_ shouldn't change
+  // XXX pollfds_ shouldn't change  直接把vector<struct pollfd> pollfds_作为参数传给poll(2)
   int numEvents = ::poll(&*pollfds_.begin(), pollfds_.size(), timeoutMs);
   int savedErrno = errno;
   Timestamp now(Timestamp::now());
@@ -52,6 +53,7 @@ Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels)
   return now;
 }
 
+//遍历pollfds_，找出有活动事件的fd,把它对应的Channel填入activeChannels。这个函数的复杂度是O(N),其中N是pollfds_的长度，即文件描述符数目。为了提前结束循环，每找到一个活动fd就递减numEvents,这样当numEvents减为0时表示活动fd都找完了，不必做无用功。当前活动事件revents会保存在Channel中，供Channel::handleEvent()使用
 void PollPoller::fillActiveChannels(int numEvents,
                                     ChannelList* activeChannels) const
 {
@@ -72,6 +74,7 @@ void PollPoller::fillActiveChannels(int numEvents,
   }
 }
 
+//负责维护和更新pollfds_数组。添加新Channel的复杂度是O(logN),更新已有的Channel的复杂度是O(1),因为Channel记住了自己在pollfds_数组中的下标，因此可以快速定位。removeChannel()复杂度也将会是O(logN)。
 void PollPoller::updateChannel(Channel* channel)
 {
   Poller::assertInLoopThread();

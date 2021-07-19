@@ -36,6 +36,7 @@ EventLoopThread::~EventLoopThread()
   }
 }
 
+//返回新线程中EventLoop对象的地址，因此用条件变量来等待线程的创建和运行
 EventLoop* EventLoopThread::startLoop()
 {
   assert(!thread_.started());
@@ -54,6 +55,10 @@ EventLoop* EventLoopThread::startLoop()
   return loop;
 }
 
+
+/*线程主函数在stack上定义EventLoop对象，然后将其地址赋值给loop_成员变量，最后notify()条件变量，唤醒startLoop().
+ * 由于EventLoop的生命期与线程主函数的作用域相同，因此在threadFunction()退出之后这个指针就失效了，好在服务程序一般不要求安全地退出
+ * */
 void EventLoopThread::threadFunc()
 {
   EventLoop loop;

@@ -113,6 +113,9 @@ TimerQueue::~TimerQueue()
   }
 }
 
+/*
+ * addTimer负责转发。addTimerInLoop完成修改定时器列表工作
+ * */
 TimerId TimerQueue::addTimer(TimerCallback cb,
                              Timestamp when,
                              double interval)
@@ -129,6 +132,7 @@ void TimerQueue::cancel(TimerId timerId)
       std::bind(&TimerQueue::cancelInLoop, this, timerId));
 }
 
+//完成修改定时器列表工作
 void TimerQueue::addTimerInLoop(Timer* timer)
 {
   loop_->assertInLoopThread();
@@ -180,6 +184,9 @@ void TimerQueue::handleRead()
   reset(expired, now);
 }
 
+///这个函数会从timers_ 中移除已到期的Timer，并通过vector返回它们。编译器会实施RVO优化，不必太担心性能，
+/// 必要时可以像EventLoop::activeChannels_那样复用vector。
+/// 注意其中哨兵值得选取，sentry让set::lower_bound()返回是第一个未到期的Timer的迭代器，因此断言中是<而非<=
 std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
 {
   assert(timers_.size() == activeTimers_.size());

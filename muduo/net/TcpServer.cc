@@ -68,6 +68,9 @@ void TcpServer::start()
   }
 }
 
+/*在新连接到达时，Acceptor会回调newConnection(),后者会创建TcpConntion对象conn,把它加入ConntionMap,设置好callback,
+ * 再调用conn->connectEstablished(),其中会回调用户提供的ConntionCallback.
+*/
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
@@ -93,7 +96,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   conn->setMessageCallback(messageCallback_);
   conn->setWriteCompleteCallback(writeCompleteCallback_);
   conn->setCloseCallback(
-      std::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
+      std::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe 用于接收连接断开的消息
   ioLoop->runInLoop(std::bind(&TcpConnection::connectEstablished, conn));
 }
 

@@ -7,7 +7,8 @@
 // Author: Shuo Chen (chenshuo at chenshuo dot com)
 //
 // This is a public header file, it must only include public header files.
-
+//是muduo里唯一默认使用shared_ptr来管理的class,也是唯一继承enable_shared_from_this的class,
+//这源于其模糊的生命期
 #ifndef MUDUO_NET_TCPCONNECTION_H
 #define MUDUO_NET_TCPCONNECTION_H
 
@@ -33,7 +34,10 @@ namespace net
 class Channel;
 class EventLoop;
 class Socket;
-
+/*
+*   TcpServer => Acceptor =>有一个新用户连接，通过accept函数拿到connfd
+*   => TcpConnection 设置回调 => Channel =》 Poller=>Channel的回调操作
+*/
 ///
 /// TCP connection, for both client and server usage.
 ///
@@ -109,9 +113,9 @@ class TcpConnection : noncopyable,
   void setCloseCallback(const CloseCallback& cb)
   { closeCallback_ = cb; }
 
-  // called when TcpServer accepts a new connection
+  // called when TcpServer accepts a new connection //连接建立
   void connectEstablished();   // should be called only once
-  // called when TcpServer has removed me from its map
+  // called when TcpServer has removed me from its map //连接销毁
   void connectDestroyed();  // should be called only once
 
  private:
@@ -131,7 +135,7 @@ class TcpConnection : noncopyable,
   void startReadInLoop();
   void stopReadInLoop();
 
-  EventLoop* loop_;
+  EventLoop* loop_; //这里绝对不是baseloop,因为TcpConnection都是在subLoop里面管理的
   const string name_;
   StateE state_;  // FIXME: use atomic variable
   bool reading_;
@@ -140,14 +144,14 @@ class TcpConnection : noncopyable,
   std::unique_ptr<Channel> channel_;
   const InetAddress localAddr_;
   const InetAddress peerAddr_;
-  ConnectionCallback connectionCallback_;
-  MessageCallback messageCallback_;
-  WriteCompleteCallback writeCompleteCallback_;
+  ConnectionCallback connectionCallback_; //有新连接时的回调
+  MessageCallback messageCallback_; //有读写数据时的回调
+  WriteCompleteCallback writeCompleteCallback_; //消息发送完以后的回调
   HighWaterMarkCallback highWaterMarkCallback_;
-  CloseCallback closeCallback_;
+  CloseCallback closeCallback_; //给TcpServer和TcpClient用的,用于通知他们移除所持有的TcpConnectionPtr,这不是给普通用户用的，普通用户依然使用ConnectionCallback
   size_t highWaterMark_;
-  Buffer inputBuffer_;
-  Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer.
+  Buffer inputBuffer_; //接收数据的缓冲区
+  Buffer outputBuffer_; //发送数据的缓冲区 // FIXME: use list<Buffer> as output buffer.
   boost::any context_;
   // FIXME: creationTime_, lastReceiveTime_
   //        bytesReceived_, bytesSent_

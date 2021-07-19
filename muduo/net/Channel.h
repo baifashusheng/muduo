@@ -92,8 +92,8 @@ class Channel : noncopyable
 
   EventLoop* loop_;
   const int  fd_;
-  int        events_;
-  int        revents_; // it's the received event types of epoll or poll
+  int        events_;   //关心的IO事件 由用户设置
+  int        revents_; // it's the received event types of epoll or poll  目前活动的事件，由 EventLoop/Poller设置
   int        index_; // used by Poller.
   bool       logHup_;
 
